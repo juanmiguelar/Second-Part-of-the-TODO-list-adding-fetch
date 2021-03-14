@@ -149,6 +149,7 @@ export function Home() {
 
 	const handleClear = e => {
 		eliminarListaTareas();
+		console.log("");
 	};
 
 	/* DECIDE SI EL BOTON DE ELIMINAR SE MUESTRA O NO */
