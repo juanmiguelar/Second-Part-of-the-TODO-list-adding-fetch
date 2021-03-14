@@ -235,10 +235,8 @@ export function Home() {
 		return null;
 	};
 
-	return (
-		<div className="container">
-			<h1 className="text-muted text-center">todos</h1>
-
+	const mostrarFormulario = () => {
+		return (
 			<div className="input-group">
 				<input
 					type="text"
@@ -262,6 +260,13 @@ export function Home() {
 					</button>
 				</div>
 			</div>
+		);
+	};
+
+	return (
+		<div className="container">
+			<h1 className="text-muted text-center">todos</h1>
+			{mostrarFormulario()}
 			{mostrarLista()}
 		</div>
 	);
