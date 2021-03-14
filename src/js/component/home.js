@@ -15,7 +15,6 @@ export function Home() {
 	const [itemSelected, setItemSelected] = useState(-1);
 	const [habilitarInput, setHabilitarInput] = useState(false);
 
-	// De forma similar a componentDidMount y componentDidUpdate
 	useEffect(() => {
 		obtenerTareas();
 	}, []);
@@ -99,8 +98,10 @@ export function Home() {
 		};
 
 		fetch(API_URL, requestOptions)
-			.then(response => response.text())
-			.then(result => {})
+			.then(response => response.json())
+			.then(result => {
+				setListTask([]);
+			})
 			.catch(error => console.log("error", error));
 	};
 
@@ -144,6 +145,10 @@ export function Home() {
 		} else {
 			eliminarListaTareas();
 		}
+	};
+
+	const handleClear = e => {
+		eliminarListaTareas();
 	};
 
 	/* DECIDE SI EL BOTON DE ELIMINAR SE MUESTRA O NO */
@@ -233,15 +238,30 @@ export function Home() {
 	return (
 		<div className="container">
 			<h1 className="text-muted text-center">todos</h1>
-			<input
-				type="text"
-				className="form-control mb-2 text-secondary"
-				value={task}
-				placeholder={habilitarInput ? "Type your task" : "loading..."}
-				onChange={e => setTask(e.target.value)}
-				onKeyDown={e => handleOnKeyDown(e)}
-				disabled={habilitarInput ? "" : "disabled"}
-			/>
+
+			<div className="input-group">
+				<input
+					type="text"
+					className="form-control mb-2 text-secondary"
+					value={task}
+					placeholder={
+						habilitarInput ? "Type your task" : "loading..."
+					}
+					onChange={e => setTask(e.target.value)}
+					onKeyDown={e => handleOnKeyDown(e)}
+					aria-describedby="btnClear"
+					disabled={habilitarInput ? "" : "disabled"}
+				/>
+				<div className="input-group-append">
+					<button
+						className="btn btn-outline-secondary"
+						type="button"
+						id="btnClear"
+						onClick={e => handleClear(e)}>
+						Clear
+					</button>
+				</div>
+			</div>
 			{mostrarLista()}
 		</div>
 	);
