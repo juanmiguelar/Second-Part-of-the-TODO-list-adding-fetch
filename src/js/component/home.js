@@ -1,52 +1,157 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, Fragment, useEffect } from "react";
 
 //create your first component
 export function Home() {
 	const DISPLAY_TASK_LIMIT = 4;
+	const API_URL = "https://assets.breatheco.de/apis/fake/todos/user/juan";
+	const CONTENT_TYPE = "application/json";
+	const POST = "POST";
+	const GET = "GET";
+	const PUT = "PUT";
+	const DELETE = "DELETE";
 
 	const [task, setTask] = useState("");
 	const [listTask, setListTask] = useState([]);
-	const [itemSelected, setItemSelected] = useState("");
+	const [itemSelected, setItemSelected] = useState(-1);
+	const [habilitarInput, setHabilitarInput] = useState(false);
+
+	// De forma similar a componentDidMount y componentDidUpdate
+	useEffect(() => {
+		obtenerTareas();
+	}, []);
+
+	const crearListaTareas = async () => {
+		var myHeaders = new Headers();
+		myHeaders.append("Content-Type", CONTENT_TYPE);
+
+		var raw = JSON.stringify([]);
+
+		var requestOptions = {
+			method: POST,
+			headers: myHeaders,
+			body: raw
+		};
+
+		const response = await fetch(API_URL, requestOptions)
+			.then(response => response.text())
+			.then(result => {})
+			.catch(error => console.log("error", error));
+	};
+
+	const obtenerTareas = () => {
+		var myHeaders = new Headers();
+		myHeaders.append("Content-Type", CONTENT_TYPE);
+
+		var requestOptions = {
+			method: GET,
+			headers: myHeaders
+		};
+
+		const response = fetch(API_URL, requestOptions)
+			.then(response => {
+				if (response.ok) {
+					return response.json();
+				}
+
+				if (response.status === 404) {
+					return [];
+				}
+
+				throw Error("Task list does not exits");
+			})
+			.then(result => {
+				setHabilitarInput(true);
+				setListTask(result);
+			})
+			.catch(error => {
+				//console.log(error.status);
+				//console.log(error);
+				setListTask([]);
+				console.log(error);
+			});
+	};
+
+	const actualizarTareas = lista => {
+		var myHeaders = new Headers();
+		myHeaders.append("Content-Type", CONTENT_TYPE);
+
+		var raw = JSON.stringify(lista);
+
+		var requestOptions = {
+			method: PUT,
+			headers: myHeaders,
+			body: raw
+		};
+
+		fetch(API_URL, requestOptions)
+			.then(response => response.json())
+			.then(result => {})
+			.catch(error => console.log("error", error));
+	};
+
+	const eliminarListaTareas = () => {
+		var myHeaders = new Headers();
+		myHeaders.append("Content-Type", CONTENT_TYPE);
+
+		var requestOptions = {
+			method: DELETE,
+			headers: myHeaders
+		};
+
+		fetch(API_URL, requestOptions)
+			.then(response => response.text())
+			.then(result => {})
+			.catch(error => console.log("error", error));
+	};
 
 	/* CONTROLA EL EVENTO PARA INSERTAR TAREAS A LA LISTA */
-	const handleOnKeyDown = e => {
+	const handleOnKeyDown = async e => {
 		if (e.key === "Enter") {
+			const lista = [...listTask, { done: false, label: task }];
 			//code to execute here
-			setListTask([
-				...listTask,
-				{ id: new Date().getTime(), task: task }
-			]);
+			if (listTask.length === 0) {
+				await crearListaTareas();
+			}
+			setListTask(lista);
 			setTask("");
+			actualizarTareas(lista);
 		}
 	};
 
 	/* CONTROLA EL EVENTO PARA MOSTRAR EL BOTON DE ELIMINAR AL PASAR POR ENCIMA DE UN ITEM DE LISTA */
-	const handleMouseOver = (e, id) => {
-		if (itemSelected !== id) {
-			setItemSelected(id);
+	const handleMouseOver = (e, index) => {
+		if (itemSelected !== index) {
+			setItemSelected(index);
 		}
 	};
 
 	/* CONTROLA EL EVENTO PARA MOSTRAR EL BOTON DE ELIMINAR AL PASAR POR ENCIMA DE UN ITEM DE LISTA */
-	const handleMouseOut = (e, id) => {
-		setItemSelected("");
+	const handleMouseOut = e => {
+		setItemSelected(-1);
 	};
 
 	/* CONTROLA EL EVENTO DE ELIMINAR EL ITEM DE LA LISTA */
-	const handleOnClick = (e, id) => {
-		const list = [...listTask].filter(item => {
-			return item.id !== id;
-		});
-
+	const handleOnClick = (e, index) => {
+		let list = [];
+		for (let i = 0; i < listTask.length; i++) {
+			if (i !== index) {
+				list.push(listTask[i]);
+			}
+		}
 		setListTask(list);
+		if (list.length > 0) {
+			actualizarTareas(list);
+		} else {
+			eliminarListaTareas();
+		}
 	};
 
 	/* DECIDE SI EL BOTON DE ELIMINAR SE MUESTRA O NO */
-	const itemObtenerClases = id => {
+	const itemObtenerClases = index => {
 		let visible = "btn btn-outline-secondary float-right";
 		let invisible = "btn btn-outline-secondary float-right invisible";
 
-		if (itemSelected == id) {
+		if (itemSelected === index) {
 			return visible;
 		} else {
 			return invisible;
@@ -57,14 +162,14 @@ export function Home() {
 	const generarLista = () => {
 		let lista = [];
 		if (listTask.length <= DISPLAY_TASK_LIMIT) {
-			lista = [...listTask].reverse().map(item => {
-				return generarItem(item);
+			lista = [...listTask].map((item, index) => {
+				return generarItem(item, index);
 			});
 		} else {
-			let displayLimitArray = [...listTask].reverse();
+			let displayLimitArray = [...listTask];
 			displayLimitArray = displayLimitArray.slice(0, DISPLAY_TASK_LIMIT);
-			lista = displayLimitArray.map(item => {
-				return generarItem(item);
+			lista = displayLimitArray.map((item, index) => {
+				return generarItem(item, index);
 			});
 		}
 
@@ -72,23 +177,23 @@ export function Home() {
 	};
 
 	/* GENERA JSX DE UN ITEM DE LA LISTA */
-	const generarItem = taskDetail => {
+	const generarItem = (taskDetail, index) => {
 		return (
 			<li
-				id={"li" + taskDetail.id}
-				key={taskDetail.id}
+				id={"li" + index}
+				key={index}
 				className="list-group-item text-secondary"
 				onMouseOver={e => {
-					handleMouseOver(e, taskDetail.id);
+					handleMouseOver(e, index);
 				}}
 				onMouseOut={e => {
-					handleMouseOut(e, taskDetail.id);
+					handleMouseOut(e);
 				}}>
-				<p className="d-inline-block ml-4">{taskDetail.task}</p>
+				<p className="d-inline-block ml-4">{taskDetail.label}</p>
 				<button
-					id={"btn" + taskDetail.id}
-					className={itemObtenerClases(taskDetail.id)}
-					onClick={e => handleOnClick(e, taskDetail.id)}>
+					id={"btn" + index}
+					className={itemObtenerClases(index)}
+					onClick={e => handleOnClick(e, index)}>
 					<i className="fas fa-times"></i>
 				</button>
 			</li>
@@ -97,7 +202,7 @@ export function Home() {
 
 	/* GENERA JSX INDICANDO SI HAY O NO ITEMS EN LA LISTA */
 	const mostrarLista = () => {
-		if (listTask.length == 0) {
+		if (habilitarInput && listTask.length == 0) {
 			return <h5 className="text-muted ml-2">No tasks, add a task</h5>;
 		} else {
 			return (
@@ -132,9 +237,10 @@ export function Home() {
 				type="text"
 				className="form-control mb-2 text-secondary"
 				value={task}
-				placeholder="Type your task"
+				placeholder={habilitarInput ? "Type your task" : "loading..."}
 				onChange={e => setTask(e.target.value)}
 				onKeyDown={e => handleOnKeyDown(e)}
+				disabled={habilitarInput ? "" : "disabled"}
 			/>
 			{mostrarLista()}
 		</div>
